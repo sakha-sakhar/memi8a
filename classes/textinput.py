@@ -1,6 +1,3 @@
-import os
-import sys
-
 import pygame as pg
 from pygame_textinput import TextInputVisualizer
 from help_func import load_font
@@ -20,7 +17,6 @@ class TextInput(TextInputVisualizer):
         self.size = 25
         self.active = False
         self.color = color
-        self.rows = []
 
     def update(self, events):
         for event in events:
@@ -37,9 +33,9 @@ class TextInput(TextInputVisualizer):
         if self.active:
             super().update(events)
 
-    def draw(self, screen):
-        rows = [self.value[:8]]
-        for c in self.value[8:]:
+    def draw(self, screen, n=8):
+        rows = [self.value[:n]]
+        for c in self.value[n:]:
             if self.font_object.size(rows[-1] + c)[0] <= self.rect.width:
                 rows[-1] += c
             else:
@@ -49,11 +45,11 @@ class TextInput(TextInputVisualizer):
             screen.blit(s, (self.rect.x, self.rect.y + i * self.size - 8))
         if len(rows) * self.size > self.rect.height + 8:
             self.size = int(self.size * 0.9 + 1)
-            self.font_object = load_font(self.size)
-
-        if self.active:
-            c = 50, 230, 120
-        else:
-            c = self.color
-        k = 2
-        pg.draw.rect(screen, c, (self.rect.x - k, self.rect.y - k, self.rect.w + k + 1, self.rect.h + k + 1), 2)
+            self.font_object = load_font('bahnschrift.ttf', self.size)
+        if n == 8:
+            if self.active:
+                c = 50, 230, 120
+            else:
+                c = self.color
+            k = 2
+            pg.draw.rect(screen, c, (self.rect.x - k, self.rect.y - k, self.rect.w + k + 1, self.rect.h + k + 1), 2)

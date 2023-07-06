@@ -4,9 +4,12 @@ import tkinter.filedialog
 
 from classes.buttons import Button, OcButton, Area
 from classes.textinput import TextInput
-from data.db_session import global_init
+from data.oc import Oc
+from data.row import Row
+from data.db_session import global_init, create_session
 from oc_window import view_characters
 from help_func import load_image, load_font, terminate, import_not_hidden, surface_from_clipboard
+from coincidences import coincidences_window
 
 WIDTH0 = 1280
 HEIGHT0 = 960
@@ -14,8 +17,16 @@ WIDTH1 = 1080
 HEIGHT1 = 840
 
 
-def save():
-    pass
+def save_to_bd(areas):
+    db_sess = create_session()
+    for a in areas:
+        if a.positions:
+            row = Row()
+            ocs = [db_sess.query(Oc).filter_by(img=o.fname).first() for o in a.positions]
+            for oc in ocs:
+                oc.rows.append(row)
+            db_sess.add(row)
+    db_sess.commit()
 
 
 def create_mem_window():
@@ -49,10 +60,11 @@ def create_mem_window():
     while running:
         pygame.display.flip()
         events = pygame.event.get()
-        
+
         oc_number_in_a_row = 0
         import_btn.coords = (screen.get_width() - 200, import_btn.coords[1])
         save_btn.coords = (screen.get_width() - 200, screen.get_height() - 50)
+        to_bd_btn.coords = screen.get_width() - 300, screen.get_height() - 50
         paste_btn.coords = (screen.get_width() - 400, paste_btn.coords[1])
         back_btn.coords = (screen.get_width() - 600, back_btn.coords[1])
         
@@ -108,6 +120,8 @@ def create_mem_window():
                         areas = []
                 if back_btn.check_mouse(mouse):
                     running = False
+                if to_bd_btn.check_mouse(mouse):
+                    save_to_bd(areas)
                 if paste_btn.check_mouse(mouse):
                     pic = surface_from_clipboard()
                     if pic:
@@ -133,11 +147,10 @@ def create_mem_window():
                     if btn.grabbed:
                         btn.coords = mouse[0] - btn.d_x, mouse[1] - btn.d_y
             elif event.type == pygame.KEYUP and event.key in (8, 127):
-                if areas:
+                if areas and all([not t.active for t in texts]) and not title.active:
                     del areas[-1]
-            for btn in (import_btn, save_btn, back_btn, paste_btn):
+            for btn in (import_btn, save_btn, back_btn, paste_btn, to_bd_btn):
                 btn.check_selected(mouse)
-                
         
         screen.fill((0, 0, 0))
         screen.blit(bg, (10, 60))
@@ -170,14 +183,10 @@ def create_mem_window():
                              60 + 105 * (i // oc_number_in_a_row)))
                 i += 1
             screen.blit(oc.current, oc.coords)
-        
-        for btn in (save_btn, import_btn, back_btn, paste_btn):
+
+        for btn in (save_btn, import_btn, back_btn, paste_btn, to_bd_btn):
             screen.blit(btn.current, btn.coords)
     
-
-def coincidences_window():
-    pass
-
 
 def menu_window():
     global screen
@@ -197,17 +206,16 @@ def menu_window():
                     screen = pygame.display.set_mode((WIDTH1, HEIGHT1))
                     pygame.display.set_caption('Табличкогенератор')
                 elif coincidences_btn.check_mouse(mouse):
-                    coincidences_window()
+                    coincidences_window(screen)
                     pygame.display.set_caption('Табличкогенератор')
             elif event.type == pygame.MOUSEMOTION:
                 new_mem_btn.check_selected(mouse)
                 new_oc_btn.check_selected(mouse)
                 coincidences_btn.check_selected(mouse)
-            '''elif event.type == pygame.KEYUP:
-                print(event.key)'''
             screen.blit(new_mem_btn.current, new_mem_btn.coords)
             screen.blit(new_oc_btn.current, new_oc_btn.coords)
             screen.blit(coincidences_btn.current, coincidences_btn.coords)
+
 
 def main():
     mainrun = True
@@ -233,6 +241,7 @@ if __name__ == '__main__':
     import_btn = Button((880, 10), 'import')
     back_btn = Button((480, 10), 'back')
     paste_btn = Button((680, 10), 'paste')
+    to_bd_btn = Button((100, HEIGHT1 - 50), 'bd')
 
     font = load_font('bahnschrift.ttf', 30)
 

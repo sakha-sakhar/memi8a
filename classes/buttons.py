@@ -41,6 +41,7 @@ class OcButton(Button):
         self.d_x = 0
         self.d_y = 0
         self.inside_a_meme = False
+        self.fname = name
 
     def move(self, btns, areas):
         self.grabbed = False
@@ -49,7 +50,7 @@ class OcButton(Button):
             if self in area.positions:
                 area.del_oc(self)
         for area in areas:
-            if area.check_mouse((self.coords[0] + 50, self.coords[1] + 50)):
+            if area.check_mouse((x + 50, y + 50)):
                 print((area.coords[1] - 60) // 105 + 1)
                 area.add(self)
                 self.inside_a_meme = True
@@ -116,7 +117,7 @@ class OcMenuComplexButton:
             self.delete()
             return 3 # delete
         return 0 
-        
+
 
 class Arrow(Button):
     def __init__(self, img, coords, reverse=False):
@@ -172,3 +173,52 @@ class Area:
             coords = (self.coords[0] + width * (i % row), self.coords[1] + height * (i // row))
             oc.change_for_render(coords, (width, height))
             i += 1
+
+
+class OcCoincidencesButton:
+    def __init__(self, x, y, oc):
+        self.rect = pygame.Rect(x, y, 100, 150)
+        self.oc = oc
+        self.active = False
+        self.img = pygame.transform.scale(load_image(oc.img), (100, 100))
+        self.name_rows = self.name_resize()
+
+    def name_resize(self):
+        w = 100
+        h = 50
+        name = self.oc.name
+        rows = [name[:4]]
+        size = 30
+        fnt = load_font('bahnschrift.ttf', size)
+        for c in name[4:]:
+            if fnt.size(rows[-1] + c)[0] <= w:
+                rows[-1] += c
+            else:
+                rows.append(c)
+        while len(rows) * size > h + 4:
+            size = int(size * 0.9 + 1)
+            fnt = load_font('bahnschrift.ttf', size)
+            rows = [name[:4]]
+            for c in name[4:]:
+                if fnt.size(rows[-1] + c)[0] <= w:
+                    rows[-1] += c
+                else:
+                    rows.append(c)
+        self.font_size = size
+        return [fnt.render(r, True, (255, 255, 255)) for r in rows]
+
+    def check_selected(self, pos):
+        if self.rect.collidepoint(pos):
+            self.active = not self.active
+
+    def draw(self, screen):
+        if self.active:
+            k = 2
+            pygame.draw.rect(
+                screen, (50, 230, 120),
+                (self.rect.x - k, self.rect.y - k, self.rect.w + k + 1, self.rect.h + k * 3), 2)
+        screen.blit(self.img, (self.rect.x, self.rect.y))
+        for i in range(len(self.name_rows)):
+            screen.blit(self.name_rows[i], (self.rect.x, self.rect.y + 100 + self.font_size * i))
+
+

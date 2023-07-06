@@ -17,8 +17,13 @@ class TextInput(TextInputVisualizer):
         self.size = 25
         self.active = False
         self.color = color
+        self.event_saved = ''
+        self.timer = 0
 
     def update(self, events):
+        if self.event_saved and pg.time.get_ticks() - self.timer > 600:
+            pg.time.Clock().tick(40)
+            events = [self.event_saved] + events
         for event in events:
             if event.type == pg.MOUSEBUTTONDOWN:
                 last_active = self.active
@@ -29,6 +34,11 @@ class TextInput(TextInputVisualizer):
                 if last_active != self.active:
                     r, g, b = self.cursor_color
                     self.cursor_color = (255 - r, 255 - g, 255 - b)
+            elif event.type == pg.KEYDOWN and self.active and not self.event_saved:
+                self.event_saved = event
+                self.timer = pg.time.get_ticks()
+            elif event.type == pg.KEYUP and self.active and self.event_saved:
+                self.event_saved = ''
 
         if self.active:
             super().update(events)

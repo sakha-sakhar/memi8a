@@ -9,6 +9,27 @@ pygame.font.init()
 font = load_font('bahnschrift.ttf', 30)
 
 
+def name_resize(w, h, name):
+        rows = [name[:4]]
+        size = 30
+        fnt = load_font('bahnschrift.ttf', size)
+        for c in name[4:]:
+            if fnt.size(rows[-1] + c)[0] <= w:
+                rows[-1] += c
+            else:
+                rows.append(c)
+        while len(rows) * size > h + 4:
+            size = int(size * 0.9 + 1)
+            fnt = load_font('bahnschrift.ttf', size)
+            rows = [name[:4]]
+            for c in name[4:]:
+                if fnt.size(rows[-1] + c)[0] < w - size // 2:
+                    rows[-1] += c
+                else:
+                    rows.append(c)
+        return [fnt.render(r, True, (255, 255, 255)) for r in rows], size
+
+
 class Button:
     def __init__(self, coords, name):
         self.coords = coords
@@ -73,7 +94,7 @@ class OcMenuComplexButton:
         self.hiddenpics = [load_image('hidden0.png'), load_image('hidden1.png')]
         self.hidden_n = int(self.related_oc.hidden)
         self.delpic = load_image('del_small.png')
-        self.name_render = font.render(self.related_oc.name, True, (255, 255, 255))
+        self.name_render, self.font_size = name_resize(150, 50, related_oc.name)
         self.renderedpic = self.render()
     
     def render(self):  # beta
@@ -81,7 +102,8 @@ class OcMenuComplexButton:
         sf.blit(self.img, (0, 0))
         sf.blit(self.hiddenpics[self.hidden_n], (100, 50))
         sf.blit(self.delpic, (150, 50))
-        sf.blit(self.name_render, (105, 10))
+        for i in range(len(self.name_render)):
+            sf.blit(self.name_render[i], (105, i * self.font_size))
         return sf
         
     def change_hidden_state(self):
@@ -181,31 +203,7 @@ class OcCoincidencesButton:
         self.oc = oc
         self.active = False
         self.img = pygame.transform.scale(load_image(oc.img), (100, 100))
-        self.name_rows = self.name_resize()
-
-    def name_resize(self):
-        w = 100
-        h = 50
-        name = self.oc.name
-        rows = [name[:4]]
-        size = 30
-        fnt = load_font('bahnschrift.ttf', size)
-        for c in name[4:]:
-            if fnt.size(rows[-1] + c)[0] <= w:
-                rows[-1] += c
-            else:
-                rows.append(c)
-        while len(rows) * size > h + 4:
-            size = int(size * 0.9 + 1)
-            fnt = load_font('bahnschrift.ttf', size)
-            rows = [name[:4]]
-            for c in name[4:]:
-                if fnt.size(rows[-1] + c)[0] <= w:
-                    rows[-1] += c
-                else:
-                    rows.append(c)
-        self.font_size = size
-        return [fnt.render(r, True, (255, 255, 255)) for r in rows]
+        self.name_rows, self.font_size = name_resize(100, 50, oc.name)
 
     def check_selected(self, pos):
         if self.rect.collidepoint(pos):

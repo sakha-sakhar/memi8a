@@ -19,6 +19,8 @@ class TextInput(TextInputVisualizer):
         self.color = color
         self.event_saved = ''
         self.timer = 0
+        self.splits = []
+        self.rows = []
 
     def update(self, events):
         if self.event_saved and pg.time.get_ticks() - self.timer > 600:
@@ -37,29 +39,48 @@ class TextInput(TextInputVisualizer):
             elif event.type == pg.KEYDOWN and self.active and not self.event_saved:
                 self.event_saved = event
                 self.timer = pg.time.get_ticks()
-            elif event.type == pg.KEYUP and self.active and self.event_saved:
-                self.event_saved = ''
-
+            elif event.type == pg.KEYUP:
+                if self.active:
+                    if self.event_saved:
+                        self.event_saved = ''
+                    if event.key == pg.K_RETURN:
+                        self.splits.append(len(self.value))
         if self.active:
+            self.change_text_box()
             super().update(events)
 
-    def draw(self, screen, n=8):
-        rows = [self.value[:n]]
-        for c in self.value[n:]:
-            if self.font_object.size(rows[-1] + c)[0] <= self.rect.width:
-                rows[-1] += c
+    def get_rows(self):
+        rows = ['']
+        v = self.value
+        if self.splits and len(v) < self.splits[-1]:
+            del self.splits[-1]
+        for i in range(len(v)):
+            if i in self.splits:
+                rows.append('')
+            if self.font_object.size(rows[-1] + v[i])[0] <= self.rect.width:
+                rows[-1] += v[i]
             else:
-                rows.append(c)
-        for i in range(len(rows)):
-            s = self.font_object.render(rows[i], True, self.color)
-            screen.blit(s, (self.rect.x, self.rect.y + i * self.size - 8))
+                rows.append(v[i])
+        # print(rows)
+        return rows
+
+    def change_text_box(self):
+        rows = self.get_rows()
         if len(rows) * self.size > self.rect.height + 8:
             self.size = int(self.size * 0.9 + 1)
-            self.font_object = load_font('bahnschrift.ttf', self.size)
-        if n == 8:
-            if self.active:
-                c = 50, 230, 120
-            else:
-                c = self.color
-            k = 2
-            pg.draw.rect(screen, c, (self.rect.x - k, self.rect.y - k, self.rect.w + k + 1, self.rect.h + k + 1), 2)
+        if len(rows) <= 4:
+            self.size = 25
+        self.font_object = load_font('bahnschrift.ttf', self.size)
+        self.rows = []
+        for i in range(len(rows)):
+            self.rows.append(self.font_object.render(rows[i], True, self.color))
+
+    def draw(self, screen):
+        for i in range(len(self.rows)):
+            screen.blit(self.rows[i], (self.rect.x, self.rect.y + i * self.size - 8))
+        if self.active:
+            c = 50, 230, 120
+        else:
+            c = self.color
+        k = 2
+        pg.draw.rect(screen, c, (self.rect.x - k, self.rect.y - k, self.rect.w + k + 1, self.rect.h + k + 1), 2)
